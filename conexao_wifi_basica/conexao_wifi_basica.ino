@@ -2,6 +2,8 @@
 #include <WiFi.h>
 // Biblioteca MQTT
 #include <PubSubClient.h>
+// Montar JSON
+#include <ArduinoJson.h>
 // Configurações
 #include "secrets.h"
 
@@ -17,7 +19,7 @@ WiFiClient clienteWiFi;
 PubSubClient clienteMQTT(clienteWiFi);
 
 // TESTE
-const unsigned long INTERVALO_TESTE = 1000;
+const unsigned long INTERVALO_PUBLICACAO = 10000;
 unsigned long ultimaPublicacao = 0;
 
 bool conectarWiFi() {
@@ -89,6 +91,24 @@ void verificarConexao() {
   }
 }
 
+// Função para TESTE -> Substituir posteriormente pela publicação de dados reais
+void publicarDados() {
+  JsonDocument doc;
+
+  float volume = random(0, 50) / 10.0;
+
+  doc["ident"] = "pluviometro_teste";
+  doc["dado"] = volume;
+
+  String payload;
+  serializeJson(doc, payload);
+
+  if (clienteMQTT.connected()) {
+    bool publicado = clienteMQTT.publish(TOPICO_MQTT, payload.c_str());
+    if (!publicado) Serial.println("Falha ao publicar");
+  }
+}
+
 //Setup
 void setup() {
   Serial.begin(115200);
@@ -106,12 +126,9 @@ void loop() {
     verificarConexao();
   }
   
-  if (millis() - ultimaPublicacao >= INTERVALO_TESTE) {
+  if (millis() - ultimaPublicacao >= INTERVALO_PUBLICACAO) {
     ultimaPublicacao = millis();
-    if (clienteMQTT.connected()) {
-      bool publicado = clienteMQTT.publish(TOPICO_MQTT, "teste");
-      if (!publicado) Serial.println("Falha ao publicar");
-    }
+    publicarDados();
   }
 
   clienteMQTT.loop();
