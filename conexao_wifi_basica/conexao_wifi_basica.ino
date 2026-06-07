@@ -1,4 +1,4 @@
-//Wifi Base
+// Wifi Base
 #include <WiFi.h>
 // Biblioteca MQTT
 #include <PubSubClient.h>
@@ -22,16 +22,19 @@ PubSubClient clienteMQTT(clienteWiFi);
 const unsigned long INTERVALO_PUBLICACAO = 10000;
 unsigned long ultimaPublicacao = 0;
 
-bool conectarWiFi() {
+bool conectarWiFi()
+{
   Serial.print("Conectando à rede: ");
   Serial.println(WIFI_SSID);
 
-  WiFi.mode(WIFI_STA);                  
+  WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
   unsigned long inicio = millis();
-  while (WiFi.status() != WL_CONNECTED) {
-    if (millis() - inicio > TIMEOUT_CONEXAO) {
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    if (millis() - inicio > TIMEOUT_CONEXAO)
+    {
       Serial.println("\nFalha: tempo de conexão esgotado.");
       return false;
     }
@@ -48,14 +51,18 @@ bool conectarWiFi() {
   return true;
 }
 
-void conectarBrokerMQTT() {
-  if (WiFi.status() != WL_CONNECTED) return;
+void conectarBrokerMQTT()
+{
+  if (WiFi.status() != WL_CONNECTED)
+    return;
 
   Serial.println("Conectando ao Broker MQTT...");
 
   unsigned long inicio = millis();
-  while (!clienteMQTT.connected()) {
-    if (millis() - inicio > TIMEOUT_CONEXAO) {
+  while (!clienteMQTT.connected())
+  {
+    if (millis() - inicio > TIMEOUT_CONEXAO)
+    {
       Serial.println("\nFalha: tempo de conexão ao Broker MQTT esgotado.");
       return;
     }
@@ -63,20 +70,31 @@ void conectarBrokerMQTT() {
     char IDCliente[50];
     sprintf(IDCliente, "PEC-Pluviometro-%06X", (uint32_t)ESP.getEfuseMac());
 
-    if (clienteMQTT.connect(IDCliente, TOKEN_BROKER, "")) {
+    if (clienteMQTT.connect(IDCliente, TOKEN_BROKER, ""))
+    {
       Serial.println("Conectado ao Broker MQTT.");
       return;
+    }
+    else
+    {
+      Serial.print("Falha, rc=");
+      Serial.println(clienteMQTT.state()); // diagnostico de falha
+      delay(2000);
     }
   }
 }
 
-//verificar e reconectar se necessário
-void verificarConexao() {
-  if (WiFi.status() != WL_CONNECTED) {
+// verificar e reconectar se necessário
+void verificarConexao()
+{
+  if (WiFi.status() != WL_CONNECTED)
+  {
     Serial.println("Conexão WiFi perdida. Tentando reconectar...");
     WiFi.disconnect();
     conectarWiFi();
-  } else {
+  }
+  else
+  {
     Serial.print("Wi-Fi ativo | IP: ");
     Serial.print(WiFi.localIP());
     Serial.print(" | RSSI: ");
@@ -84,7 +102,8 @@ void verificarConexao() {
     Serial.println(" dBm");
   }
 
-  if (!clienteMQTT.connected()) {
+  if (!clienteMQTT.connected())
+  {
     Serial.println("Conexão ao Broker MQTT perdida. Tentando reconectar...");
     clienteMQTT.disconnect();
     conectarBrokerMQTT();
@@ -92,7 +111,8 @@ void verificarConexao() {
 }
 
 // Função para TESTE -> Substituir posteriormente pela publicação de dados reais
-void publicarDados() {
+void publicarDados()
+{
   JsonDocument doc;
 
   float volume = random(0, 50) / 10.0;
@@ -103,14 +123,17 @@ void publicarDados() {
   String payload;
   serializeJson(doc, payload);
 
-  if (clienteMQTT.connected()) {
+  if (clienteMQTT.connected())
+  {
     bool publicado = clienteMQTT.publish(TOPICO_MQTT, payload.c_str());
-    if (!publicado) Serial.println("Falha ao publicar");
+    if (!publicado)
+      Serial.println("Falha ao publicar");
   }
 }
 
-//Setup
-void setup() {
+// Setup
+void setup()
+{
   Serial.begin(115200);
   delay(1000);
   Serial.println("\nInicializando módulo Wi-Fi");
@@ -120,13 +143,16 @@ void setup() {
   conectarBrokerMQTT();
 }
 
-void loop() {
-  if (millis() - ultimaVerificacao >= INTERVALO_VERIFICACAO) {
+void loop()
+{
+  if (millis() - ultimaVerificacao >= INTERVALO_VERIFICACAO)
+  {
     ultimaVerificacao = millis();
     verificarConexao();
   }
-  
-  if (millis() - ultimaPublicacao >= INTERVALO_PUBLICACAO) {
+
+  if (millis() - ultimaPublicacao >= INTERVALO_PUBLICACAO)
+  {
     ultimaPublicacao = millis();
     publicarDados();
   }
