@@ -40,6 +40,7 @@ Adafruit_ADS1115 ads;
 #define SDA_PIN 21
 #define SCL_PIN 22
 #define CHANNEL 0
+#define CHANNEL_2 2
 
 const int SAMPLE_RATE = 860;        // máximo ADS1115
 const int BUFFER_SIZE = 300;        // ~348 ms de janela (N amostras)
@@ -47,7 +48,8 @@ const float THRESHOLD = 0.03;       // 30mV (mais sensível) podemos alterar aqu
 const float ADC_LSB = 0.000125;     // GAIN_ONE = 0.125mV/bit
 const float NOISE_FLOOR = 0.003;    // abaixo disso é ruído, vira 0
 
-float samples[BUFFER_SIZE];
+float samplesA0[BUFFER_SIZE];       //Buffer leityra canal 1
+float samplesA2[BUFFER_SIZE];       //Buffer leityra canal 2
 
 // Conexões
 const unsigned long TIMEOUT_CONEXAO = 20000;
@@ -60,13 +62,23 @@ PubSubClient clienteMQTT(clienteWiFi);
 // Intervalo de reporte: acumula ~10 s e publica o S somado (ver doc, seção 7).
 const unsigned long INTERVALO_PUBLICACAO = 10000;
 
-// Acumuladores do intervalo de reporte
-float    S_report        = 0;   // soma dos S de cada janela (V·s) -> principal
-uint32_t impactos_report = 0;   // contagem de impactos no intervalo
-float    pico_report     = 0;   // maior tensão no intervalo (diagnóstico)
-double   somaQuad_report = 0;   // soma dos quadrados (para o RMS do intervalo)
-uint32_t nAmostras_report = 0;  // total de amostras lidas no intervalo
-unsigned long t_ini_report = 0; // marca o início do intervalo de reporte
+// Acumuladores do intervalo de reporte (Entrada A0)
+float    S_reportA0        = 0;   // soma dos S de cada janela (V·s) -> principal
+uint32_t impactos_reportA0 = 0;   // contagem de impactos no intervalo
+float    pico_reportA0     = 0;   // maior tensão no intervalo (diagnóstico)
+double   somaQuad_reportA0 = 0;   // soma dos quadrados (para o RMS do intervalo)
+uint32_t nAmostras_reportA0 = 0;  // total de amostras lidas no intervalo
+unsigned long t_ini_reportA0 = 0; // marca o início do intervalo de reporte
+
+
+// Acumuladores do intervalo de reporte (Entrada A2)
+float    S_reportA2        = 0;   // soma dos S de cada janela (V·s) -> principal
+uint32_t impactos_reportA2 = 0;   // contagem de impactos no intervalo
+float    pico_reportA2     = 0;   // maior tensão no intervalo (diagnóstico)
+double   somaQuad_reportA2 = 0;   // soma dos quadrados (para o RMS do intervalo)
+uint32_t nAmostras_reportA2 = 0;  // total de amostras lidas no intervalo
+unsigned long t_ini_reportA2 = 0; // marca o início do intervalo de reporte
+
 
 // FUNÇÕES
 
@@ -313,7 +325,8 @@ void setup() {
   conectarBrokerMQTT();
 
   Serial.println("Sistema iniciado");
-  t_ini_report = millis();
+  t_ini_reportA0 = millis();
+  t_ini_reportA2 = millis();
 }
 
 // LOOP
@@ -323,17 +336,24 @@ void loop() {
   unsigned long t0 = millis();
   for (int i = 0; i < BUFFER_SIZE; i++) {
 
-    int16_t raw = ads.readADC_SingleEnded(CHANNEL);
+    //int16_t raw = ads.readADC_SingleEnded(CHANNEL);
+    int16_t rawA0 = ads.readADC_SingleEnded(CHANNEL);
+    int16_t rawA2 = ads.readADC_SingleEnded(CHANNEL_2);
 
     // Converte para volts
-    float voltage = raw * ADC_LSB;
+    //float voltage = raw * ADC_LSB;
+    float voltageA0 = rawA0 * ADC_LSB;
+    float voltageA2 = rawA2 * ADC_LSB;
+
 
     // Remove ruído muito baixo
-    if (voltage < NOISE_FLOOR) {
-      voltage = 0;
-    }
+    //if (voltage < NOISE_FLOOR) voltage = 0;
+    if (voltageA0 < NOISE_FLOOR) voltageA0 = 0;
+    if (voltageA2 < NOISE_FLOOR) voltageA2 = 0;
 
-    samples[i] = voltage;
+    //samples[i] = voltage;
+    samplesA0[i] = voltageA0;
+    samplesA2[i] = voltageA2;
 
     // ADS1115 já limita pela taxa interna
     delay(1);
@@ -341,24 +361,45 @@ void loop() {
   float T_janela = (millis() - t0) / 1000.0;  // duração REAL da janela (s)
 
   // --- análises da janela ---
-  float somaV = sumVoltage(samples, BUFFER_SIZE);
-  float peak = calculatePeak(samples, BUFFER_SIZE);
-  int impacts = countImpacts(samples, BUFFER_SIZE, THRESHOLD);
+  //float somaV = sumVoltage(samples, BUFFER_SIZE);
+  //float peak = calculatePeak(samples, BUFFER_SIZE);
+  //int impacts = countImpacts(samples, BUFFER_SIZE, THRESHOLD);
+  float peakA0 = calculatePeak(samplesA0, BUFFER_SIZE);
+  float peakA2 = calculatePeak(samplesA2, BUFFER_SIZE);
+
+  int impactsA0 = countImpacts(samplesA0, BUFFER_SIZE, THRESHOLD);
+  int impactsA2 = countImpacts(samplesA2, BUFFER_SIZE, THRESHOLD);
+
+  float somaVA0 = sumVoltage(samplesA0, BUFFER_SIZE);
+  float somaVA2 = sumVoltage(samplesA2, BUFFER_SIZE);
 
   // Integral da janela: S = (tensão média) * tempo da janela = somaV * T / N
-  float S_janela = somaV * T_janela / BUFFER_SIZE;
+  //float S_janela = somaV * T_janela / BUFFER_SIZE;
+  float S_janelaA0 = somaVA0 * T_janela / BUFFER_SIZE;
+  float S_janelaA2 = somaVA2 * T_janela / BUFFER_SIZE;
 
   // --- acúmulo no intervalo de reporte ---
-  S_report += S_janela;
-  impactos_report += impacts;
-  if (peak > pico_report) pico_report = peak;
+  S_reportA0 += S_janelaA0;
+  S_reportA2 += S_janelaA2;
+
+  impactos_reportA0 += impactsA0;
+  impactos_reportA2 += impactsA2;
+
+  if (peakA0 > pico_reportA0) pico_reportA0 = peakA0;
   for (int i = 0; i < BUFFER_SIZE; i++) {
-    somaQuad_report += (double)samples[i] * samples[i];
+    somaQuad_reportA0 += (double)samplesA0[i] * samplesA0[i];
   }
-  nAmostras_report += BUFFER_SIZE;
+  nAmostras_reportA0 += BUFFER_SIZE;
+
+  if (peakA2 > pico_reportA2) pico_reportA2 = peakA2;
+  for (int i = 0; i < BUFFER_SIZE; i++) {
+    somaQuad_reportA2 += (double)samplesA2[i] * samplesA2[i];
+  }
+  nAmostras_reportA2 += BUFFER_SIZE;
 
   // Classificação de chuva (exemplo simples; refinar futuramente)
   const char* chuva;
+  int impacts = (impactsA0 + impactsA2);
   if (impacts < 1)        chuva = "Sem Chuva";
   else if (impacts < 8)   chuva = "Chuva Fraca";
   else if (impacts < 20)  chuva = "Chuva Moderada";
@@ -366,28 +407,54 @@ void loop() {
 
   // SERIAL MONITOR (diagnóstico da janela)
   Serial.println("--------------------------------");
-  Serial.print("Pico: ");      Serial.print(peak, 4);      Serial.println(" V");
-  Serial.print("Impactos: ");  Serial.println(impacts);
-  Serial.print("S janela: ");  Serial.print(S_janela, 6);  Serial.println(" V.s");
+
+  Serial.print("Pico Piezo 1: ");      Serial.print(peakA0, 4);      Serial.println(" V");
+  Serial.print("Pico Piezo 2: ");      Serial.print(peakA2, 4);      Serial.println(" V");
+
+
+  Serial.print("Impactos Somados (Piezo 1 + Piezo 2): ");  Serial.println(impacts);
+
+  Serial.print("S janela Piezo 1: ");  Serial.print(S_janelaA0, 6);  Serial.println(" V.s");
+  Serial.print("S janela Piezo 2: ");  Serial.print(S_janelaA2, 6);  Serial.println(" V.s");
+
   Serial.print("Status: ");    Serial.println(chuva);
 
   // --- a cada INTERVALO_PUBLICACAO, publica o acumulado e zera ---
-  if (millis() - t_ini_report >= INTERVALO_PUBLICACAO) {
-    float T_report = (millis() - t_ini_report) / 1000.0;
-    float rms_report = nAmostras_report > 0
-                         ? sqrt(somaQuad_report / nAmostras_report)
+  if (millis() - t_ini_reportA0 >= INTERVALO_PUBLICACAO) {
+    float T_reportA0 = (millis() - t_ini_reportA0) / 1000.0;
+    float rms_reportA0 = nAmostras_reportA0 > 0
+                         ? sqrt(somaQuad_reportA0 / nAmostras_reportA0)
                          : 0;
-
-    publicarTelemetria(S_report, T_report, impactos_report, pico_report, rms_report);
+               
+    publicarTelemetria(S_reportA0, T_reportA0, impactos_reportA0, pico_reportA0, rms_reportA0);
+    
 
     // zera os acumuladores do próximo intervalo
-    S_report = 0;
-    impactos_report = 0;
-    pico_report = 0;
-    somaQuad_report = 0;
-    nAmostras_report = 0;
-    t_ini_report = millis();
+    S_reportA0 = 0;
+    impactos_reportA0 = 0;
+    pico_reportA0 = 0;
+    somaQuad_reportA0 = 0;
+    nAmostras_reportA0 = 0;
+    t_ini_reportA0 = millis();
+
   }
+
+  if (millis() - t_ini_reportA2 >= INTERVALO_PUBLICACAO) {
+    float T_reportA2 = (millis() - t_ini_reportA2) / 1000.0;
+    float rms_reportA2 = nAmostras_reportA2 > 0
+                         ? sqrt(somaQuad_reportA2 / nAmostras_reportA2)
+                         : 0;
+
+    publicarTelemetria(S_reportA2, T_reportA2, impactos_reportA2, pico_reportA2, rms_reportA2);
+
+    
+    S_reportA2 = 0;
+    impactos_reportA2 = 0;
+    pico_reportA2 = 0;
+    somaQuad_reportA2 = 0;
+    nAmostras_reportA2 = 0;
+    t_ini_reportA2 = millis();
+  }     
 
   // Reconexão periódica (não bloqueia a coleta)
   if (millis() - ultimaVerificacao >= INTERVALO_VERIFICACAO) {
