@@ -7,9 +7,9 @@ Geometria do pluviômetro:
 
 LÓGICA:
   1. Preenche um buffer de tamanho fixo (N amostras por canal)
-  2. Cada canal tem seu próprio tempo de coleta (T_A0, T_A1, T_A2, T_A3),
+  2. Cada canal tem seu próprio tempo de coleta (T),
      pois são lidos sequencialmente no ADS1115
-  3. Assim que encheu, publica os 4 buffers + tempos individuais
+  3. Assim que encheu, publica os 4 buffers + tempo
   4. Zera e recomeça
 
   Vantagem: sem timer, sem desperdício de energia.
