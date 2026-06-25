@@ -52,7 +52,10 @@ def ao_conectar(client, userdata, flags, reason_code, properties=None):
 
 def ao_desconectar(client, userdata, *args):
     userdata["conectado"] = False
-    print("Desconectado do broker.")
+    # args pode conter (flags, reason_code, properties) na API v2
+    # ou (reason_code,) na API v1
+    reason = args[1] if len(args) >= 2 else (args[0] if args else "desconhecido")
+    print(f"Desconectado do broker. Motivo: {reason}")
 
 
 def evoluir_intensidade(intensidade):
