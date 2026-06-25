@@ -111,8 +111,7 @@ lamina_mm   = c_area * densidade
 
 A ponderação por área é exatamente essa divisão pela área total: as faces maiores pesam
 mais, as menores pesam menos, na proporção em que captam chuva. O acumulado (mm) e as
-intensidades (mm/h) saem de somar `S_total` sobre diferentes janelas de tempo, como
-descrito em [`calculo_chuva_piezo_thingsboard.md`](calculo_chuva_piezo_thingsboard.md).
+intensidades (mm/h) saem de somar `S_total` sobre diferentes janelas de tempo.
 
 ## Simulador
 
