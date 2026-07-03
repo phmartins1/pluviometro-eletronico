@@ -10,10 +10,10 @@ Projeto de um **pluviômetro eletrônico** utilizando **sensores piezoelétricos
 
 ```
 pluviometro-eletronico/
-├── checkpoints-anteriores/         # Material desenvolvido em checkpoints anteriores (ultrapassado)
-├── firmware/                       # Firmware de leitura dos piezos e transmissão de dados (ESP32)
-├── hardware/                       # Esquemáticos elétricos do pluviômetro
-├── telemetria/                     # Simulador da telemetria
+├── checkpoints-anteriores/   # Material desenvolvido em checkpoints anteriores (ultrapassado)
+├── firmware/                 # Firmware de leitura dos piezos e transmissão de dados (ESP32)
+├── hardware/                 # Esquemáticos elétricos do pluviômetro
+├── telemetria/               # Simulador da telemetria
 ├── .gitignore
 └── README.md
 ```
@@ -111,18 +111,18 @@ intensidades (mm/h) saem de somar `S_total` sobre diferentes janelas de tempo.
 
 ## Simulador
 
-[`simulador_telemetria_v2.py`](simulador_telemetria_v2.py) reproduz a telemetria da
+[`telemetria/simulador-telemetria.py`](telemetria/simulador-telemetria.py) reproduz a telemetria da
 abordagem atual: gera os buffers brutos dos 4 piezos (com sinal proporcional à área de
 cada face) e publica no broker no mesmo formato do firmware. Útil para desenvolver e
 testar o processamento na nuvem sem o hardware.
 
 ```
 pip install paho-mqtt
-python simulador_telemetria_v2.py
+python simulador-telemetria.py
 ```
 
 ## Segurança
 
 Credenciais sensíveis (Rede WiFi, Broker MQTT) não são incluídas no repositório.
 
-Utilize o arquivo `secrets_example.h` como base para criar seu próprio `secrets.h`.
+Utilize o arquivo `exemplo-secrets.h` (em `telemetria/`) como base para criar seu próprio `secrets.h`.

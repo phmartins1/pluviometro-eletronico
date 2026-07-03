@@ -29,7 +29,6 @@ const int   BUFFER_SIZE = 300;        // N amostras por canal antes de publicar
 const float ADC_LSB     = 0.000125;   // GAIN_ONE = 0,125 mV/bit
 const float NOISE_FLOOR = 0.003;      // abaixo disso é ruído, vira 0 (V)
 
-// Removido cálculo redundante que não era usado no código
 
 // Buffers de leitura (tensão em V)
 float samples_PiezoA0[BUFFER_SIZE];
@@ -137,7 +136,7 @@ void setup() {
   Serial.begin(115200);
   delay(1000);
   Wire.begin(SDA_PIN, SCL_PIN);
-  Wire.setClock(400000); // ⚡ CORREÇÃO: Força o barramento I2C a 400kHz (Fast Mode) para reduzir o tempo de leitura
+  Wire.setClock(400000);
 
   if (!ads.begin()) {
      Serial.println("ERRO: ADS1115 não encontrado!");
@@ -189,7 +188,6 @@ void loop() {
     yield();
   }
 
-  // 🛠️ CORREÇÃO: Divisão por 1.000.000.0f para obter o tempo correto em SEGUNDOS
   float T = (micros() - t0) / 1000000.0f; 
 
   // Validação da integridade temporal da janela
