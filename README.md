@@ -10,14 +10,10 @@ Projeto de um **pluviômetro eletrônico** utilizando **sensores piezoelétricos
 
 ```
 pluviometro-eletronico/
-├── basic_functionalities/          # Firmware de leitura dos piezos (ESP32)
-│   ├── Sensor_chuva_ads1115_4Piezos    # Versão atual: 4 piezos, envia buffers brutos
-│   └── sensor_chuva_ads1115_ESP32.ino  # Versão anterior: 1 canal, calculava S na placa
-├── conexao_wifi_basica/            # Código de integração ESP32-BrokerMQTT
+├── checkpoints-anteriores/         # Material desenvolvido em checkpoints anteriores (ultrapassado)
+├── firmware/                       # Firmware de leitura dos piezos e transmissão de dados (ESP32)
 ├── hardware/                       # Esquemáticos elétricos do pluviômetro
-├── simulador_telemetria_v2.py      # Simulador da telemetria (nova abordagem)
-├── simulador_telemetria.py         # Simulador da telemetria (abordagem anterior)
-├── calculo_chuva_piezo_thingsboard.md  # Referência do cálculo de chuva
+├── telemetria/                     # Simulador da telemetria
 ├── .gitignore
 └── README.md
 ```
