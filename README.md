@@ -125,4 +125,4 @@ python simulador-telemetria.py
 
 Credenciais sensíveis (Rede WiFi, Broker MQTT) não são incluídas no repositório.
 
-Utilize o arquivo `exemplo-secrets.h` (em `telemetria/`) como base para criar seu próprio `secrets.h`.
+Utilize o arquivo [`firmware/exemplo_secrets.h`](firmware/exemplo_secrets.h) como base para criar seu próprio `secrets.h`.
